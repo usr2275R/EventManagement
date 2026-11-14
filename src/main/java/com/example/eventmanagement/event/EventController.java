@@ -31,4 +31,9 @@ public class EventController extends GenericController<Event,EventService> {
         return service.changeStatus(id, value);
     }
 
+    @GetMapping("/test/holidays")
+    public List<HolidayService.Holiday> testHolidays(@RequestParam int year, @RequestParam String country) {
+        return service.testHolidays(year, country);
+    }
+
 }

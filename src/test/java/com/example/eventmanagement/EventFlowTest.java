@@ -46,7 +46,6 @@ class EventFlowTest {
                         .content("{\"event\":{\"id\":1},\"attendee\":{\"id\":1}}"))
                 .andExpect(status().isCreated());
 
-        // event capacity is 1, so a second registration must be rejected
         mvc.perform(post("/api/registrations").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"event\":{\"id\":1},\"attendee\":{\"id\":2}}"))
                 .andExpect(status().isConflict());

@@ -47,12 +47,12 @@ public abstract class GenericController<T extends BaseEntity, S extends GenericS
         return service.create(entity);
     }
 
-    @PutMapping
+    @PutMapping("/{id}")
     public T update(@PathVariable Long id, @Valid @RequestBody T entity){
         return service.update(id,entity);
     }
 
-    @DeleteMapping
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id){
         service.delete(id);
         return ResponseEntity.noContent().build();

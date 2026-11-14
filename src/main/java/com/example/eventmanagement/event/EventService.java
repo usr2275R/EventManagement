@@ -5,25 +5,44 @@ import com.example.eventmanagement.excepition.BusinessRuleException;
 import com.example.eventmanagement.excepition.ResourceNotFoundException;
 import com.example.eventmanagement.venue.Venue;
 import com.example.eventmanagement.venue.VenueRepositary;
+
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+
 @Service
 public class EventService extends GenericServiceImplementation<Event,EventRepositary> {
-    private final VenueRepositary venueRepositary;
 
-    public EventService(EventRepositary repository, VenueRepositary venueRepositary) {
+    private static final Logger log = LoggerFactory.getLogger(EventService.class);
+
+
+    private final VenueRepositary venueRepositary;
+    private final HolidayService holidayService;
+
+
+    public EventService(EventRepositary repository, VenueRepositary venueRepositary, HolidayService holidayService) {
         super(repository, "Event");
         this.venueRepositary = venueRepositary;
+        this.holidayService = holidayService;
+
+
     }
 
     @Override
     public Event create(Event event) {
         validate(event);
-        return super.create(event);
+        String warning = holidayWarning(event);
+        Event saved = super.create(event);
+        saved.setWarning(warning);
+        return saved;
     }
 
     @Override
@@ -75,6 +94,21 @@ public class EventService extends GenericServiceImplementation<Event,EventReposi
         } else {
             event.setVenue(null);
         }
+    }
+    private String holidayWarning(Event event) {
+        try {
+            LocalDate date = event.getStartTime().toLocalDate();
+            return holidayService.getHoliday(date)
+                    .map(h -> "Event is scheduled on a public holiday: " + h.name())
+                    .orElse(null);
+        } catch (Exception e) {
+            log.warn("Holiday check failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    public List<HolidayService.Holiday> testHolidays(int year, String country) {
+        return holidayService.getPublicHolidays(year, country);
     }
 
 
