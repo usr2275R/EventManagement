@@ -8,6 +8,7 @@ import com.example.eventmanagement.excepition.ResourceNotFoundException;
 import com.example.eventmanagement.notification.EmailEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,13 +24,15 @@ import java.util.List;
 @RequestMapping("/api/registrations")
 public class RegistrationController extends GenericController<Registration,RegistrationService> {
 
-    private final ApplicationEventPublisher publisher;
+    private final KafkaTemplate<String, EmailEvent> kafkaTemplate;
     private final EventService eventService;
 
 
-    public RegistrationController(RegistrationService service,ApplicationEventPublisher publisher,EventService eventService) {
+    public RegistrationController(RegistrationService service,
+                                  KafkaTemplate<String, EmailEvent> kafkaTemplate,
+                                  EventService eventService) {
         super(service);
-        this.publisher = publisher;
+        this.kafkaTemplate = kafkaTemplate;
         this.eventService = eventService;
 
 
@@ -56,12 +59,15 @@ public class RegistrationController extends GenericController<Registration,Regis
                                            @RequestParam Long eventId) {
         Event event = eventService.findById(eventId);
 
-        publisher.publishEvent(new EmailEvent(
+        EmailEvent emailEvent = new EmailEvent(
                 to,
                 "Registration Confirmation: " + event.getTitle(),
-                "Hi " +name +",\n"
-                        +" you have been registered successfully for " + event.getTitle() + "."));
-        return ResponseEntity.ok("Mail event published");
+                "Hi " + name + ",\n"
+                        + "you have been registered successfully for " + event.getTitle() + ".");
+
+        kafkaTemplate.send("email-events", to, emailEvent);
+
+        return ResponseEntity.ok("Mail event queued");
     }
 
 

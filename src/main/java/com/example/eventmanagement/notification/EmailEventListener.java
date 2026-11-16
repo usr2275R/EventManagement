@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
@@ -20,7 +21,7 @@ public class EmailEventListener {
     }
 
     @Async
-    @EventListener
+    @KafkaListener(topics = "email-events", groupId = "email-service", concurrency = "3")
     public void onEmailEvent(EmailEvent event) {
         log.info("Sending email to {}", event.to());
         try {
