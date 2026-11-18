@@ -8,9 +8,8 @@ import org.springframework.kafka.config.TopicBuilder;
 
 @Configuration
 public class KafkaConfig {
-
     @Bean
-    public NewTopic emailEventsTopic() {
-        return TopicBuilder.name("email-events").partitions(3).replicas(1).build();
+    public NewTopic emailEventsDlt() {
+        return TopicBuilder.name("email-events.DLT").partitions(3).replicas(1).build();
     }
 }

@@ -2,10 +2,13 @@ package com.example.eventmanagement.notification;
 
 import com.example.eventmanagement.event.Event;
 import com.example.eventmanagement.event.EventService;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,7 +24,9 @@ public class NotificationTestController {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationTestController.class);
 
+    @Autowired
     private final KafkaTemplate<String, EmailEvent> kafkaTemplate;
+
     private final EventService eventService;
 
     public NotificationTestController(KafkaTemplate<String, EmailEvent> kafkaTemplate,
@@ -81,5 +86,23 @@ public class NotificationTestController {
         kafkaTemplate.flush();
         log.info("CSV request handled, queued {} emails for event {}", sent, eventId);
         return "Queued " + sent + " emails";
+    }
+
+
+    @PostMapping("/test/trigger-dlt")
+    public String triggerDlt() {
+        EmailEvent event = new EmailEvent(
+                "uday2275@zohomail.in",
+                "Test failed email",
+                "Test body");
+
+        ProducerRecord<String, EmailEvent> record =
+                new ProducerRecord<>("email-events.DLT", event.to(), event);
+        record.headers().add(KafkaHeaders.DLT_EXCEPTION_MESSAGE,
+                "Manually triggered test failure".getBytes(StandardCharsets.UTF_8));
+
+        kafkaTemplate.send(record);
+        log.info("Manually sent test event to email-events.DLT");
+        return "Sent to DLT";
     }
 }
