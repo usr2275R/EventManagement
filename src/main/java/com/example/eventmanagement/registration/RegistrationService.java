@@ -8,22 +8,29 @@ import com.example.eventmanagement.event.EventRepositary;
 import com.example.eventmanagement.event.EventStatus;
 import com.example.eventmanagement.excepition.BusinessRuleException;
 import com.example.eventmanagement.excepition.ResourceNotFoundException;
+import com.example.eventmanagement.notification.EmailEvent;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class RegistrationService extends GenericServiceImplementation<Registration,RegistrationRepository> {
     private final EventRepositary eventRepositary;
     private final AttendeeRepositary attendeeRepositary;
+    private final KafkaTemplate<String, EmailEvent> kafkaTemplate;
 
     public RegistrationService(RegistrationRepository repository,
                                EventRepositary eventRepositary,
-                               AttendeeRepositary attendeeRepositary) {
+                               AttendeeRepositary attendeeRepositary,
+                               KafkaTemplate<String, EmailEvent> kafkaTemplate) {
         super(repository, "Registration");
         this.eventRepositary = eventRepositary;
         this.attendeeRepositary = attendeeRepositary;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Override
@@ -51,7 +58,27 @@ public class RegistrationService extends GenericServiceImplementation<Registrati
         registration.setEvent(event);
         registration.setAttendee(attendee);
         registration.setCheckedIn(false);
-        return super.create(registration);
+
+        Registration saved= super.create(registration);
+
+
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("userName", attendee.getName());
+        variables.put("eventTitle", event.getTitle());
+        variables.put("venue", event.getVenue().getName());
+        variables.put("startTime", event.getStartTime().toString());
+
+        EmailEvent emailEvent = new EmailEvent(
+                List.of(attendee.getEmail()),
+                "Registration confirmed: " + event.getTitle(),
+                "event-registration-confirmation",
+                variables
+        );
+
+        kafkaTemplate.send("email-topic", emailEvent);
+
+        return saved;
 
     }
 

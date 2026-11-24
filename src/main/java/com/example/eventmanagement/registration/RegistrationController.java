@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/registrations")
@@ -34,7 +36,6 @@ public class RegistrationController extends GenericController<Registration,Regis
         super(service);
         this.kafkaTemplate = kafkaTemplate;
         this.eventService = eventService;
-
 
 
     }
@@ -53,22 +54,29 @@ public class RegistrationController extends GenericController<Registration,Regis
     public Registration checkIn(@PathVariable Long id) {
         return service.checkIn(id);
     }
+
     @PostMapping("/send-mail")
     public ResponseEntity<String> sendMail(@RequestParam String to,
                                            @RequestParam String name,
                                            @RequestParam Long eventId) {
         Event event = eventService.findById(eventId);
 
-        EmailEvent emailEvent = new EmailEvent(
-                to,
-                "Registration Confirmation: " + event.getTitle(),
-                "Hi " + name + ",\n"
-                        + "you have been registered successfully for " + event.getTitle() + ".");
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("userName", name);
+        variables.put("eventTitle", event.getTitle());
 
-        kafkaTemplate.send("email-events", to, emailEvent);
+        EmailEvent emailEvent = new EmailEvent(
+                List.of(to),
+                "Registration Confirmation: " + event.getTitle(),
+                "welcome",
+                variables
+        );
+
+        kafkaTemplate.send("email-request-topic", to, emailEvent);
 
         return ResponseEntity.ok("Mail event queued");
     }
+
 
 
 }

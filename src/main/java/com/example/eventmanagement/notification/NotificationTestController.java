@@ -18,6 +18,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 public class NotificationTestController {
@@ -38,9 +41,18 @@ public class NotificationTestController {
     @PostMapping("/test/bulk-email")
     public String bulk(@RequestParam(defaultValue = "50") int count) {
         for (int i = 1; i <= count; i++) {
+            String email = "chandru4809+" + i + "@gmail.com";
+
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("userName", "User " + i);
+
             EmailEvent emailEvent = new EmailEvent(
-                    "chandru4809+" + i + "@gmail.com", "Test " + i, "Body " + i);
-            kafkaTemplate.send("email-events", emailEvent.to(), emailEvent);
+                    List.of(email),
+                    "Test " + i,
+                    "welcome",
+                    variables
+            );
+            kafkaTemplate.send("email-request-topic", email, emailEvent);
         }
         kafkaTemplate.flush();
         return "Queued " + count + " emails";
@@ -64,11 +76,16 @@ public class NotificationTestController {
                 String email = parts[0].trim();
                 String name = parts.length > 1 ? parts[1].trim() : "there";
 
+                Map<String, Object> variables = new HashMap<>();
+                variables.put("userName", name);
+                variables.put("eventTitle", event.getTitle());
+
                 EmailEvent emailEvent = new EmailEvent(
-                        email,
+                        List.of(email),
                         "Registration Confirmation: " + event.getTitle(),
-                        "Hi " + name + ",\n\nYou have been registered successfully for "
-                                + event.getTitle() + ".");
+                        "welcome",
+                        variables
+                );
 
                 kafkaTemplate.send("email-events", email, emailEvent)
                         .whenComplete((result, ex) -> {
@@ -91,13 +108,17 @@ public class NotificationTestController {
 
     @PostMapping("/test/trigger-dlt")
     public String triggerDlt() {
+        String email = "uday2275@zohomail.in";
+
         EmailEvent event = new EmailEvent(
-                "uday2275@zohomail.in",
+                List.of(email),
                 "Test failed email",
-                "Test body");
+                "welcome",
+                Map.of("userName", "Uday")
+        );
 
         ProducerRecord<String, EmailEvent> record =
-                new ProducerRecord<>("email-events.DLT", event.to(), event);
+                new ProducerRecord<>("email-events.DLT", email, event);   // String key, not event.to()
         record.headers().add(KafkaHeaders.DLT_EXCEPTION_MESSAGE,
                 "Manually triggered test failure".getBytes(StandardCharsets.UTF_8));
 
