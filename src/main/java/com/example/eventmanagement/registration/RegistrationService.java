@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class RegistrationService extends GenericServiceImplementation<Registration,RegistrationRepository> {
@@ -70,6 +71,7 @@ public class RegistrationService extends GenericServiceImplementation<Registrati
         variables.put("startTime", event.getStartTime().toString());
 
         EmailEvent emailEvent = new EmailEvent(
+                UUID.randomUUID().toString(),
                 List.of(attendee.getEmail()),
                 "Registration confirmed: " + event.getTitle(),
                 "event-registration-confirmation",

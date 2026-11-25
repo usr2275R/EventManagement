@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/registrations")
@@ -66,6 +67,7 @@ public class RegistrationController extends GenericController<Registration,Regis
         variables.put("eventTitle", event.getTitle());
 
         EmailEvent emailEvent = new EmailEvent(
+                UUID.randomUUID().toString(),
                 List.of(to),
                 "Registration Confirmation: " + event.getTitle(),
                 "welcome",

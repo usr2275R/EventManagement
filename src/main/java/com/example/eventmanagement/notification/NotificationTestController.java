@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 public class NotificationTestController {
@@ -47,6 +48,7 @@ public class NotificationTestController {
             variables.put("userName", "User " + i);
 
             EmailEvent emailEvent = new EmailEvent(
+                    UUID.randomUUID().toString(),
                     List.of(email),
                     "Test " + i,
                     "welcome",
@@ -81,6 +83,7 @@ public class NotificationTestController {
                 variables.put("eventTitle", event.getTitle());
 
                 EmailEvent emailEvent = new EmailEvent(
+                        UUID.randomUUID().toString(),
                         List.of(email),
                         "Registration Confirmation: " + event.getTitle(),
                         "welcome",
@@ -111,6 +114,7 @@ public class NotificationTestController {
         String email = "uday2275@zohomail.in";
 
         EmailEvent event = new EmailEvent(
+                UUID.randomUUID().toString(),
                 List.of(email),
                 "Test failed email",
                 "welcome",
