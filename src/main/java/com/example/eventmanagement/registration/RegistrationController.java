@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -56,29 +57,59 @@ public class RegistrationController extends GenericController<Registration,Regis
         return service.checkIn(id);
     }
 
-    @PostMapping("/send-mail")
-    public ResponseEntity<String> sendMail(@RequestParam String to,
-                                           @RequestParam String name,
-                                           @RequestParam Long eventId) {
-        Event event = eventService.findById(eventId);
+//    @PostMapping("/send-mail")
+//    public ResponseEntity<EmailEvent> sendMail(@RequestParam String to,
+//                                           @RequestParam String name,
+//                                           @RequestParam Long eventId) {
+//        Event event = eventService.findById(eventId);
+//
+//        Map<String, Object> variables = new HashMap<>();
+//        variables.put("userName", name);
+//        variables.put("eventTitle", event.getTitle());
+//
+//        EmailEvent emailEvent = new EmailEvent(
+//                UUID.randomUUID().toString(),
+//                List.of(to),
+//                "Registration Confirmation: " + event.getTitle(),
+//                "Event Register",
+//                variables
+//        );
+//
+//        kafkaTemplate.send("email-request-topic", to, emailEvent);
+//
+//        return ResponseEntity.ok("Mail event queued");
+//    }
 
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("userName", name);
-        variables.put("eventTitle", event.getTitle());
 
-        EmailEvent emailEvent = new EmailEvent(
-                UUID.randomUUID().toString(),
-                List.of(to),
-                "Registration Confirmation: " + event.getTitle(),
-                "welcome",
-                variables
-        );
+@PostMapping("/send-event")
+public ResponseEntity<String> sendEvent(@RequestBody EmailEvent incoming) {
 
-        kafkaTemplate.send("email-request-topic", to, emailEvent);
+        //error while accepting the templatename in another app becoz here it is sending defult one
 
-        return ResponseEntity.ok("Mail event queued");
+    if (incoming.templateName() == null || incoming.templateName().isBlank()) {
+        return ResponseEntity.badRequest().body("templateName is required");
+    }
+    if (incoming.to() == null || incoming.to().isEmpty()) {
+        return ResponseEntity.badRequest().body("to is required");
     }
 
+    // requestId is mandatory in emailService (unique), so generate one if the caller omits it
+    String requestId = (incoming.requestId() == null || incoming.requestId().isBlank())
+            ? UUID.randomUUID().toString()
+            : incoming.requestId();
+
+    EmailEvent event = new EmailEvent(
+            requestId,
+            incoming.to(),
+            incoming.subject(),
+            incoming.templateName(),
+            incoming.variables()
+    );
+
+    kafkaTemplate.send("email-request-topic", event.to().get(0), event);
+
+    return ResponseEntity.ok("Mail event queued: ");
+}
 
 
 }
